@@ -1,0 +1,631 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+index.js
+package.json
+public/uploads/1764387817837.webp
+public/uploads/1764389317040.avif
+public/uploads/1764389372584.avif
+public/uploads/1764389669759.avif
+public/uploads/1764389757365.webp
+public/uploads/1764389830267.avif
+public/uploads/1764389896267.avif
+public/uploads/1764389997846.webp
+public/uploads/1764390055156.avif
+public/uploads/1764390087631.avif
+public/uploads/1764390200280.avif
+public/uploads/1764390236168.webp
+public/uploads/1764391988302.avif
+public/uploads/1764395048591.webp
+src/app.js
+src/config/db.js
+src/controllers/authController.js
+src/controllers/dashboardController.js
+src/controllers/menuController.js
+src/controllers/orderController.js
+src/middleware/authMiddleware.js
+src/middleware/uploadMiddleware.js
+src/routes/authRoutes.js
+src/routes/dashboardRoutes.js
+src/routes/menuRoutes.js
+src/routes/orderRoutes.js
+src/services/authService.js
+src/services/menuService.js
+src/services/orderService.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="index.js">
+require('dotenv').config(); // Load .env
+const app = require('./src/app');
+const port = process.env.PORT || 5000;
+
+app.listen(port, () => {
+    console.log(`Server jalan di http://localhost:${port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+</file>
+
+<file path="package.json">
+{
+  "name": "backend-warungku",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "echo \"node index js",
+    "dev": "nodemon index js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
+</file>
+
+<file path="src/app.js">
+const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
+const path = require('path');
+
+const app = express();
+
+// Import Routes
+const menuRoutes = require('./routes/menuRoutes');
+const orderRoutes = require('./routes/orderRoutes'); 
+const authRoutes = require('./routes/authRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes'); // <-- BARU
+
+// --- MIDDLEWARE ---
+app.use(cors()); 
+app.use(morgan('dev')); 
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true })); 
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'))); 
+
+// --- ROUTES ---
+app.use('/api/dashboard', dashboardRoutes); // <-- BARU
+app.use('/api/orders', orderRoutes);
+app.use('/api/menu', menuRoutes);   
+app.use('/api/auth', authRoutes);
+
+app.get('/', (req, res) => {
+    res.json({ message: "Server WarungKu is Running! 🚀" });
+});
+
+module.exports = app;
+</file>
+
+<file path="src/config/db.js">
+// src/config/database.js
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
+});
+
+// Cek koneksi pas awal jalan
+pool.connect((err, client, release) => {
+  if (err) {
+    return console.error('Error connecting to database:', err.stack);
+  }
+  console.log('Connected to PostgreSQL database successfully!');
+  release();
+});
+
+module.exports = {
+  query: (text, params) => pool.query(text, params),
+  pool
+};
+</file>
+
+<file path="src/controllers/authController.js">
+const pool = require('../config/db').pool;
+const bcrypt = require('bcrypt'); 
+const jwt = require('jsonwebtoken');
+
+// --- 1. FUNGSI LOGIN ---
+const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: 'Email tidak ditemukan' });
+    }
+
+    const user = result.rows[0];
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Password salah' });
+    }
+
+    // BUAT TOKEN JWT
+    const token = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '1d' }
+    );
+
+    // Kirim data dan TOKEN
+    res.json({
+      message: 'Login berhasil',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone_number: user.phone_number // Tambahan untuk auto-fill
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// --- 2. FUNGSI REGISTER ---
+const register = async (req, res) => {
+  const { name, email, password, phone } = req.body;
+  
+  const saltRounds = 10;
+
+  try {
+    const checkEmail = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (checkEmail.rows.length > 0) {
+      return res.status(400).json({ message: 'Email sudah digunakan!' });
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const query = `
+      INSERT INTO users (name, email, password, phone_number, role)
+      VALUES ($1, $2, $3, $4, 'user')
+      RETURNING id, name, email, role, phone_number
+    `;
+    
+    const result = await pool.query(query, [name, email, hashedPassword, phone]);
+    const newUser = result.rows[0];
+
+    res.status(201).json({
+      message: 'Registrasi berhasil! Silakan login.',
+      user: newUser
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { login, register };
+</file>
+
+<file path="src/controllers/dashboardController.js">
+const pool = require('../config/db').pool;
+
+const getSalesSummary = async (req, res) => {
+    try {
+        // Query menghitung Total Pendapatan dan Jumlah Pesanan Selesai
+        const totalRevenueQuery = `
+            SELECT 
+                COALESCE(SUM(total_price), 0) AS total_revenue,
+                COUNT(id) AS total_orders
+            FROM orders
+            WHERE status = 'Selesai';
+        `;
+        const revenueResult = await pool.query(totalRevenueQuery);
+        const { total_revenue, total_orders } = revenueResult.rows[0];
+
+        // Query untuk menghitung pendapatan per hari dalam 7 hari terakhir
+        // Penting: COALESCE(SUM(total_price), 0) digunakan agar hasilnya 0 jika tidak ada penjualan
+        const dailyRevenueQuery = `
+            SELECT 
+                DATE(created_at) AS date,
+                COALESCE(SUM(total_price), 0) AS revenue
+            FROM orders
+            WHERE status = 'Selesai' AND created_at >= NOW() - INTERVAL '7 days'
+            GROUP BY date
+            ORDER BY date;
+        `;
+        const dailyRevenueResult = await pool.query(dailyRevenueQuery);
+
+        res.json({
+            total_sales: parseFloat(total_revenue).toFixed(2),
+            total_completed_orders: parseInt(total_orders),
+            daily_data: dailyRevenueResult.rows.map(row => ({
+                date: row.date,
+                revenue: parseFloat(row.revenue).toFixed(2)
+            }))
+        });
+
+    } catch (err) {
+        console.error('Error fetching sales summary:', err);
+        res.status(500).json({ error: 'Gagal mengambil data ringkasan penjualan' });
+    }
+};
+
+module.exports = { getSalesSummary };
+</file>
+
+<file path="src/controllers/menuController.js">
+const pool = require('../config/db').pool; // Sesuaikan path db kamu
+
+// 1. AMBIL SEMUA MENU
+const getAllMenu = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
+    res.status(200).json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 2. TAMBAH MENU BARU
+const addMenu = async (req, res) => {
+  const { name, category, price, description } = req.body;
+ const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+ 
+  try {
+    const query = `
+      INSERT INTO products (name, category, price, description, image_url, is_available)
+      VALUES ($1, $2, $3, $4, $5, true) RETURNING *
+    `;
+    const result = await pool.query(query, [name, category, price, description, image_url]);
+    res.status(201).json({ message: 'Menu berhasil ditambahkan!', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 3. EDIT MENU (UBAH STATUS / HARGA) <--- INI BARU
+const updateMenu = async (req, res) => {
+  const { id } = req.params;
+  const { name, category, price, description, is_available } = req.body;
+
+  try {
+    // Kita update data berdasarkan ID
+    const query = `
+      UPDATE products 
+      SET name = $1, category = $2, price = $3, description = $4, is_available = $5
+      WHERE id = $6
+      RETURNING *
+    `;
+    const values = [name, category, price, description, is_available, id];
+    
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Menu tidak ditemukan' });
+    }
+
+    res.json({ message: 'Menu berhasil diupdate!', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 4. HAPUS MENU <--- INI BARU
+const deleteMenu = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING *', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Menu tidak ditemukan' });
+    }
+
+    res.json({ message: 'Menu berhasil dihapus!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { getAllMenu, addMenu, updateMenu, deleteMenu };
+</file>
+
+<file path="src/controllers/orderController.js">
+const pool = require('../config/db').pool;
+
+// --- 1. USER: BUAT PESANAN BARU ---
+const createOrder = async (req, res) => {
+    // ... (Fungsi ini tidak berubah, tetap menggunakan user_id)
+    const { user_id, customer_name, customer_whatsapp, customer_address, total_price, cart_items } = req.body;
+    const client = await pool.connect();
+    // ... (sisa code createOrder)
+    try {
+        await client.query('BEGIN');
+        const timestamp = Date.now().toString().slice(-6);
+        const randomNum = Math.floor(Math.random() * 1000);
+        const transaction_code = `WRG-${timestamp}-${randomNum}`;
+        const orderQuery = `
+            INSERT INTO orders (user_id, transaction_code, customer_name, customer_whatsapp, customer_address, total_price, status)
+            VALUES ($1, $2, $3, $4, $5, $6, 'Menunggu Konfirmasi')
+            RETURNING id, transaction_code
+        `;
+        const orderResult = await client.query(orderQuery, [
+            user_id, transaction_code, customer_name, customer_whatsapp, customer_address, total_price
+        ]);
+        const newOrderId = orderResult.rows[0].id;
+        // ... (sisa item query)
+        const itemQuery = `INSERT INTO order_items (order_id, product_id, quantity, price_at_time) VALUES ($1, $2, $3, $4)`;
+        for (const item of cart_items) {
+            await client.query(itemQuery, [newOrderId, item.id, item.qty, item.price]);
+        }
+        await client.query('COMMIT');
+        res.status(201).json({ message: 'Pesanan berhasil dibuat!', transaction_code: transaction_code, total_price: total_price });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(err);
+        res.status(500).json({ error: 'Gagal memproses pesanan' });
+    } finally {
+        client.release();
+    }
+};
+
+// --- 2. USER: CEK STATUS (TRACKING) ---
+const getOrderStatus = async (req, res) => {
+    // ... (Fungsi ini tidak berubah)
+    const { transaction_code } = req.params;
+    try {
+        const orderQuery = `SELECT * FROM orders WHERE transaction_code = $1`;
+        const orderResult = await pool.query(orderQuery, [transaction_code]);
+        if (orderResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Kode transaksi tidak ditemukan' });
+        }
+        const order = orderResult.rows[0];
+        const itemsQuery = `
+            SELECT p.name, oi.quantity 
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            WHERE oi.order_id = $1
+        `;
+        const itemsResult = await pool.query(itemsQuery, [order.id]);
+        const itemsString = itemsResult.rows.map(item => `${item.name} (${item.quantity})`).join(', ');
+        res.json({
+            id: order.transaction_code,
+            customer: order.customer_name,
+            status: order.status,
+            items: itemsString,
+            timeline: [
+                { status: "Pesanan Dibuat", time: order.created_at, done: true },
+                { status: "Diproses Dapur", time: "-", done: order.status !== 'Menunggu Konfirmasi' && order.status !== 'Menunggu Pembayaran' },
+                { status: "Selesai", time: "-", done: order.status === 'Selesai' },
+            ]
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// --- 3. ADMIN: AMBIL SEMUA PESANAN ---
+const getAllOrders = async (req, res) => {
+    // ... (Fungsi ini tidak berubah)
+    try {
+        const query = `
+            SELECT 
+                o.id, o.transaction_code, o.customer_name, o.total_price, o.status, o.created_at,
+                STRING_AGG(p.name || ' (' || oi.quantity || ')', ', ') as menu_items
+            FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// --- 4. ADMIN: UPDATE STATUS PESANAN ---
+const updateOrderStatus = async (req, res) => {
+    // ... (Fungsi ini tidak berubah)
+    const { id } = req.params;
+    const { status } = req.body; 
+    try {
+        const query = `UPDATE orders SET status = $1 WHERE id = $2 RETURNING *`;
+        const result = await pool.query(query, [status, id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Pesanan tidak ditemukan' });
+        }
+        res.json({ message: 'Status berhasil diperbarui', data: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// --- 5. USER: RIWAYAT PESANAN (getUserOrderHistory telah dihapus) ---
+
+module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus }; // <-- EXPORT BARU
+</file>
+
+<file path="src/middleware/authMiddleware.js">
+const jwt = require('jsonwebtoken');
+
+// 1. FUNGSI UTAMA: MEMPROTEKSI ROUTE DARI YANG TIDAK PUNYA TOKEN
+const protect = (req, res, next) => {
+    let token;
+
+    // Cek di header, harusnya formatnya: "Authorization: Bearer <TOKEN>"
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+        return res.status(401).json({ message: 'Akses ditolak. Token tidak ditemukan.' });
+    }
+
+    try {
+        // Verifikasi token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // Simpan info user (id & role) ke objek request
+        req.user = decoded; 
+        
+        next(); // Lanjut ke controller
+    } catch (error) {
+        // Jika token tidak valid (expired/palsu)
+        res.status(401).json({ message: 'Token tidak valid.' });
+    }
+};
+
+// 2. FUNGSI TAMBAHAN: HANYA UNTUK ADMIN
+const adminOnly = (req, res, next) => {
+    // req.user sudah ada karena melewati fungsi protect di atas
+    if (req.user && req.user.role === 'admin') {
+        next(); // Lanjut ke controller
+    } else {
+        res.status(403).json({ message: 'Akses ditolak. Khusus Admin.' });
+    }
+};
+
+
+module.exports = { protect, adminOnly };
+</file>
+
+<file path="src/middleware/uploadMiddleware.js">
+const multer = require('multer');
+const path = require('path');
+
+// Setup Multer (Upload Gambar)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/uploads/'); 
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
+
+module.exports = upload;
+</file>
+
+<file path="src/routes/authRoutes.js">
+const express = require('express');
+const router = express.Router();
+const authController = require('../controllers/authController');
+
+// POST /api/auth/login
+router.post('/login', authController.login);
+router.post('/register', authController.register);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/dashboardRoutes.js">
+const express = require('express');
+const router = express.Router();
+const dashboardController = require('../controllers/dashboardController');
+const { protect, adminOnly } = require('../middleware/authMiddleware'); 
+
+// Rute untuk mengambil ringkasan penjualan
+router.get('/sales', protect, adminOnly, dashboardController.getSalesSummary);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/menuRoutes.js">
+const express = require('express');
+const router = express.Router();
+const menuController = require('../controllers/menuController');
+const { protect, adminOnly } = require('../middleware/authMiddleware'); 
+const upload = require('../middleware/uploadMiddleware'); // <-- IMPORT DARI FILE BARU
+
+// --- DEFINISI ROUTE ---
+router.get('/', menuController.getAllMenu);                 
+
+// --- PROTEKSI ROUTE ADMIN ---
+router.post('/', protect, adminOnly, upload.single('image'), menuController.addMenu); 
+router.put('/:id', protect, adminOnly, menuController.updateMenu);    
+router.delete('/:id', protect, adminOnly, menuController.deleteMenu); 
+
+module.exports = router;
+</file>
+
+<file path="src/routes/orderRoutes.js">
+const express = require('express');
+const router = express.Router();
+const orderController = require('../controllers/orderController');
+const { protect, adminOnly } = require('../middleware/authMiddleware'); 
+
+// USER ROUTES
+router.post('/', orderController.createOrder);
+router.get('/:transaction_code', orderController.getOrderStatus);
+
+// USER ROUTE DENGAN PROTEKSI (History telah dihapus)
+
+// ADMIN ROUTES (DI PROTEKSI)
+router.get('/', protect, adminOnly, orderController.getAllOrders);     
+router.put('/:id', protect, adminOnly, orderController.updateOrderStatus); 
+
+module.exports = router;
+</file>
+
+</files>
