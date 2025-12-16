@@ -2,7 +2,6 @@ const pool = require('../config/db').pool;
 const bcrypt = require('bcrypt'); 
 const jwt = require('jsonwebtoken');
 
-// --- 1. FUNGSI LOGIN ---
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -21,14 +20,12 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Password salah' });
     }
 
-    // BUAT TOKEN JWT
     const token = jwt.sign(
         { id: user.id, role: user.role },
         process.env.JWT_SECRET,
         { expiresIn: '1d' }
     );
 
-    // Kirim data dan TOKEN
     res.json({
       message: 'Login berhasil',
       token,
@@ -37,7 +34,7 @@ const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        phone_number: user.phone_number // Tambahan untuk auto-fill
+        phone_number: user.phone_number 
       }
     });
 
@@ -46,7 +43,6 @@ const login = async (req, res) => {
   }
 };
 
-// --- 2. FUNGSI REGISTER ---
 const register = async (req, res) => {
   const { name, email, password, phone } = req.body;
   
@@ -80,3 +76,4 @@ const register = async (req, res) => {
 };
 
 module.exports = { login, register };
+
