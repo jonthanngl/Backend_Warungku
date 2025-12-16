@@ -1,11 +1,8 @@
 const pool = require('../config/db').pool;
 
-// --- 1. USER: BUAT PESANAN BARU ---
 const createOrder = async (req, res) => {
-    // ... (Fungsi ini tidak berubah, tetap menggunakan user_id)
     const { user_id, customer_name, customer_whatsapp, customer_address, total_price, cart_items } = req.body;
     const client = await pool.connect();
-    // ... (sisa code createOrder)
     try {
         await client.query('BEGIN');
         const timestamp = Date.now().toString().slice(-6);
@@ -20,7 +17,7 @@ const createOrder = async (req, res) => {
             user_id, transaction_code, customer_name, customer_whatsapp, customer_address, total_price
         ]);
         const newOrderId = orderResult.rows[0].id;
-        // ... (sisa item query)
+
         const itemQuery = `INSERT INTO order_items (order_id, product_id, quantity, price_at_time) VALUES ($1, $2, $3, $4)`;
         for (const item of cart_items) {
             await client.query(itemQuery, [newOrderId, item.id, item.qty, item.price]);
@@ -36,9 +33,8 @@ const createOrder = async (req, res) => {
     }
 };
 
-// --- 2. USER: CEK STATUS (TRACKING) ---
+
 const getOrderStatus = async (req, res) => {
-    // ... (Fungsi ini tidak berubah)
     const { transaction_code } = req.params;
     try {
         const orderQuery = `SELECT * FROM orders WHERE transaction_code = $1`;
@@ -71,9 +67,8 @@ const getOrderStatus = async (req, res) => {
     }
 };
 
-// --- 3. ADMIN: AMBIL SEMUA PESANAN ---
 const getAllOrders = async (req, res) => {
-    // ... (Fungsi ini tidak berubah)
+
     try {
         const query = `
             SELECT 
@@ -92,9 +87,8 @@ const getAllOrders = async (req, res) => {
     }
 };
 
-// --- 4. ADMIN: UPDATE STATUS PESANAN ---
 const updateOrderStatus = async (req, res) => {
-    // ... (Fungsi ini tidak berubah)
+
     const { id } = req.params;
     const { status } = req.body; 
     try {
@@ -108,7 +102,4 @@ const updateOrderStatus = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
-
-// --- 5. USER: RIWAYAT PESANAN (getUserOrderHistory telah dihapus) ---
-
-module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus }; // <-- EXPORT BARU
+module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus };
