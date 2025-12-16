@@ -1,4 +1,4 @@
-const pool = require('../config/db').pool; // Sesuaikan path db kamu
+const pool = require('../config/db').pool; // Pastikan path db kamu benar
 
 // 1. AMBIL SEMUA MENU
 const getAllMenu = async (req, res) => {
@@ -10,11 +10,14 @@ const getAllMenu = async (req, res) => {
   }
 };
 
-// 2. TAMBAH MENU BARU
+// 2. TAMBAH MENU BARU (Support Cloudinary)
 const addMenu = async (req, res) => {
   const { name, category, price, description } = req.body;
- const image_url = req.file ? `/uploads/${req.file.filename}` : null;
- 
+  
+  // PERUBAHAN UTAMA DISINI:
+  // Cloudinary otomatis ngasih link gambar di 'req.file.path'
+  const image_url = req.file ? req.file.path : null;
+  
   try {
     const query = `
       INSERT INTO products (name, category, price, description, image_url, is_available)
@@ -27,20 +30,35 @@ const addMenu = async (req, res) => {
   }
 };
 
-// 3. EDIT MENU (UBAH STATUS / HARGA) <--- INI BARU
+// 3. EDIT MENU (Support Update Gambar Cloudinary)
 const updateMenu = async (req, res) => {
   const { id } = req.params;
   const { name, category, price, description, is_available } = req.body;
 
   try {
-    // Kita update data berdasarkan ID
-    const query = `
-      UPDATE products 
-      SET name = $1, category = $2, price = $3, description = $4, is_available = $5
-      WHERE id = $6
-      RETURNING *
-    `;
-    const values = [name, category, price, description, is_available, id];
+    let query;
+    let values;
+
+    // Cek: Apakah admin upload gambar baru?
+    if (req.file) {
+        // JIKA YA: Update semua kolom TERMASUK image_url
+        query = `
+          UPDATE products 
+          SET name = $1, category = $2, price = $3, description = $4, is_available = $5, image_url = $6
+          WHERE id = $7
+          RETURNING *
+        `;
+        values = [name, category, price, description, is_available, req.file.path, id];
+    } else {
+        // JIKA TIDAK: Update data teks saja, gambar lama biarin
+        query = `
+          UPDATE products 
+          SET name = $1, category = $2, price = $3, description = $4, is_available = $5
+          WHERE id = $6
+          RETURNING *
+        `;
+        values = [name, category, price, description, is_available, id];
+    }
     
     const result = await pool.query(query, values);
 
@@ -54,7 +72,7 @@ const updateMenu = async (req, res) => {
   }
 };
 
-// 4. HAPUS MENU <--- INI BARU
+// 4. HAPUS MENU
 const deleteMenu = async (req, res) => {
   const { id } = req.params;
 
