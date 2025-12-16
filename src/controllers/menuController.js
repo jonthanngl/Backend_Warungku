@@ -1,4 +1,4 @@
-const pool = require('../config/db').pool; // Pastikan path db kamu benar
+const pool = require('../config/db').pool;
 
 const getAllMenu = async (req, res) => {
   try {
@@ -81,4 +81,5 @@ const deleteMenu = async (req, res) => {
 };
 
 module.exports = { getAllMenu, addMenu, updateMenu, deleteMenu };
+
 
