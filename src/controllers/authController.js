@@ -22,7 +22,24 @@ const login = async (req, res) => {
     }
 
     // BUAT TOKEN JWT
-    
+    const token = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '1d' }
+    );
+
+    // Kirim data dan TOKEN
+    res.json({
+      message: 'Login berhasil',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone_number: user.phone_number // Tambahan untuk auto-fill
+      }
+    });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -61,6 +78,5 @@ const register = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 module.exports = { login, register };
