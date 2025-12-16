@@ -2,7 +2,6 @@ const pool = require('../config/db').pool;
 
 const getSalesSummary = async (req, res) => {
     try {
-        // Query menghitung Total Pendapatan dan Jumlah Pesanan Selesai
         const totalRevenueQuery = `
             SELECT 
                 COALESCE(SUM(total_price), 0) AS total_revenue,
@@ -13,8 +12,6 @@ const getSalesSummary = async (req, res) => {
         const revenueResult = await pool.query(totalRevenueQuery);
         const { total_revenue, total_orders } = revenueResult.rows[0];
 
-        // Query untuk menghitung pendapatan per hari dalam 7 hari terakhir
-        // Penting: COALESCE(SUM(total_price), 0) digunakan agar hasilnya 0 jika tidak ada penjualan
         const dailyRevenueQuery = `
             SELECT 
                 DATE(created_at) AS date,
