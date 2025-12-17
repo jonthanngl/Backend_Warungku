@@ -1,24 +1,20 @@
-// src/config/database.js
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
-
-// Cek koneksi pas awal jalan
 pool.connect((err, client, release) => {
   if (err) {
-    return console.error('Error connecting to database:', err.stack);
+    return console.error('❌ Error connecting to database (Neon):', err.stack);
   }
-  console.log('Connected to PostgreSQL database successfully!');
+  console.log('✅ Connected to Neon PostgreSQL successfully!');
   release();
 });
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
-  pool
+  pool 
 };
