@@ -18,7 +18,6 @@ const createOrder = async (req, res) => {
             user_id, transaction_code, customer_name, customer_whatsapp, customer_address, total_price
         ]);
         const newOrderId = orderResult.rows[0].id;
-        // ... (sisa item query)
         const itemQuery = `INSERT INTO order_items (order_id, product_id, quantity, price_at_time) VALUES ($1, $2, $3, $4)`;
         for (const item of cart_items) {
             await client.query(itemQuery, [newOrderId, item.id, item.qty, item.price]);
@@ -105,3 +104,4 @@ const updateOrderStatus = async (req, res) => {
 };
 
 module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus }; // <-- EXPORT BARU
+
