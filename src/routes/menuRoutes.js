@@ -1,12 +1,9 @@
-// src/routes/menuRoutes.js
 const express = require('express');
 const router = express.Router();
 const menuController = require('../controllers/menuController');
 const { protect, adminOnly } = require('../middleware/authMiddleware'); 
 const upload = require('../middleware/uploadMiddleware'); 
 
-// --- PUBLIC ROUTE (Bisa diakses siapa saja) ---
-// INI YANG HILANG SEBELUMNYA 👇
 router.get('/', menuController.getAllMenu); 
 
 
@@ -18,3 +15,4 @@ router.put('/:id', protect, adminOnly, upload.single('image'), menuController.up
 router.delete('/:id', protect, adminOnly, menuController.deleteMenu); 
 
 module.exports = router;
+
