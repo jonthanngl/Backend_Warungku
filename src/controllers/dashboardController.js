@@ -38,4 +38,4 @@ const getSalesSummary = async (req, res) => {
     }
 };
 
-module.exports = { getSalesSummary };\
+module.exports = { getSalesSummary };
