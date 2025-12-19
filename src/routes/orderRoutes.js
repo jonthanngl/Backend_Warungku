@@ -6,7 +6,7 @@ const { protect, adminOnly } = require('../middleware/authMiddleware');
 // USER ROUTES
 router.post('/', orderController.createOrder);
 
-// KHUSUS RIWAYAT USER (Harus di atas /:transaction_code)
+// --- RUTE BARU: HISTORY (Harus diletakkan SEBELUM /:transaction_code) ---
 router.get('/history', protect, orderController.getUserOrders);
 
 router.get('/:transaction_code', orderController.getOrderStatus);
