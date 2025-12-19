@@ -36,10 +36,10 @@ const createOrder = async (req, res) => {
     }
 };
 
-// --- FUNGSI BARU: RIWAYAT USER ---
+// --- FUNGSI BARU: AMBIL RIWAYAT PESANAN USER ---
 const getUserOrders = async (req, res) => {
     try {
-        // Ambil ID user dari token (req.user diset oleh middleware protect)
+        // Ambil ID User dari Token (req.user diset oleh middleware protect)
         const userId = req.user.id; 
         
         const query = `
@@ -83,8 +83,8 @@ const getOrderStatus = async (req, res) => {
             id: order.transaction_code,
             customer: order.customer_name,
             status: order.status,
-            total_price: order.total_price, // Penting untuk frontend
-            items: itemsString, 
+            total_price: order.total_price,
+            items: itemsString,
             timeline: [
                 { status: "Pesanan Dibuat", time: order.created_at, done: true },
                 { status: "Diproses Dapur", time: "-", done: order.status !== 'Menunggu Konfirmasi' && order.status !== 'Menunggu Pembayaran' },
@@ -130,5 +130,5 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-// Pastikan getUserOrders diexport
+// PASTIKAN getUserOrders ADA DI SINI
 module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus, getUserOrders };
