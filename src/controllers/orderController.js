@@ -36,10 +36,11 @@ const createOrder = async (req, res) => {
     }
 };
 
-// --- FUNGSI BARU: AMBIL RIWAYAT USER ---
+// --- FUNGSI BARU: getUserOrders ---
 const getUserOrders = async (req, res) => {
     try {
-        const userId = req.user.id; // Didapat dari middleware protect
+        // Ambil ID dari token user yang sedang login
+        const userId = req.user.id; 
         
         const query = `
             SELECT 
@@ -128,5 +129,5 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-// Pastikan getUserOrders ikut diexport
+// Pastikan getUserOrders diexport
 module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus, getUserOrders };
