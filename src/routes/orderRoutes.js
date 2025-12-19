@@ -5,12 +5,13 @@ const { protect, adminOnly } = require('../middleware/authMiddleware');
 
 // --- USER ROUTES ---
 
+// 1. Buat Pesanan
 router.post('/', orderController.createOrder);
 
-// 1. Route History (Harus paling atas sebelum yg pakai :param)
+// 2. Riwayat Pesanan User (PENTING: Taruh di atas route :transaction_code)
 router.get('/history', protect, orderController.getUserOrders);
 
-// 2. Route Tracking (Saya tambah /track/ biar spesifik dan tidak bentrok)
+// 3. Lacak Pesanan (Tambahkan /track/ agar spesifik)
 router.get('/track/:transaction_code', orderController.getOrderStatus);
 
 // --- ADMIN ROUTES ---
