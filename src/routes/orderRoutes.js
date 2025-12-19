@@ -3,15 +3,17 @@ const router = express.Router();
 const orderController = require('../controllers/orderController');
 const { protect, adminOnly } = require('../middleware/authMiddleware'); 
 
-// USER ROUTES
+// --- USER ROUTES ---
+
 router.post('/', orderController.createOrder);
 
-// --- RUTE BARU: HISTORY (Harus diletakkan SEBELUM /:transaction_code) ---
+// 1. Route History (Harus paling atas sebelum yg pakai :param)
 router.get('/history', protect, orderController.getUserOrders);
 
-router.get('/:transaction_code', orderController.getOrderStatus);
+// 2. Route Tracking (Saya tambah /track/ biar spesifik dan tidak bentrok)
+router.get('/track/:transaction_code', orderController.getOrderStatus);
 
-// ADMIN ROUTES
+// --- ADMIN ROUTES ---
 router.get('/', protect, adminOnly, orderController.getAllOrders);     
 router.put('/:id', protect, adminOnly, orderController.updateOrderStatus); 
 
