@@ -2,51 +2,102 @@ const pool = require('../config/db').pool;
 
 // --- 1. USER: BUAT PESANAN BARU ---
 const createOrder = async (req, res) => {
-    // Ambil ID User langsung dari Token (req.user), jangan percaya req.body untuk keamanan
+    // Ambil ID User dari token (req.user). 
+    // Pastikan di routes sudah ada middleware 'protect'
     const userIdFromToken = req.user.id; 
-    const { customer_name, customer_whatsapp, customer_address, total_price, cart_items } = req.body;
+    
+    const { 
+        customer_name, 
+        customer_whatsapp, 
+        customer_address, 
+        total_price, 
+        cart_items 
+    } = req.body;
     
     const client = await pool.connect();
 
     try {
         await client.query('BEGIN');
+
+        // Generate kode transaksi
         const timestamp = Date.now().toString().slice(-6);
         const randomNum = Math.floor(Math.random() * 1000);
         const transaction_code = `WRG-${timestamp}-${randomNum}`;
         
+        // Simpan ke tabel orders (Gunakan userIdFromToken)
         const orderQuery = `
             INSERT INTO orders (user_id, transaction_code, customer_name, customer_whatsapp, customer_address, total_price, status)
             VALUES ($1, $2, $3, $4, $5, $6, 'Menunggu Konfirmasi')
             RETURNING id, transaction_code
         `;
         
-        // Menggunakan userIdFromToken agar pesanan terikat ke akun yang login
         const orderResult = await client.query(orderQuery, [
-            userIdFromToken, transaction_code, customer_name, customer_whatsapp, customer_address, total_price
+            userIdFromToken, 
+            transaction_code, 
+            customer_name, 
+            customer_whatsapp, 
+            customer_address, 
+            total_price
         ]);
+        
         const newOrderId = orderResult.rows[0].id;
         
+        // Simpan item pesanan
         const itemQuery = `INSERT INTO order_items (order_id, product_id, quantity, price_at_time) VALUES ($1, $2, $3, $4)`;
+        
         for (const item of cart_items) {
             await client.query(itemQuery, [newOrderId, item.id, item.qty, item.price]);
         }
         
         await client.query('COMMIT');
+        
         res.status(201).json({ 
             message: 'Pesanan berhasil dibuat!', 
             transaction_code: transaction_code, 
             total_price: total_price 
         });
+
     } catch (err) {
         await client.query('ROLLBACK');
-        console.error(err);
+        console.error("Error Create Order:", err);
         res.status(500).json({ error: 'Gagal memproses pesanan' });
     } finally {
         client.release();
     }
 };
 
-// --- 2. USER: CEK STATUS (TRACKING) ---
+// --- 2. USER: RIWAYAT PESANAN ---
+const getUserOrders = async (req, res) => {
+    try {
+        const userId = req.user.id; // Diambil dari middleware protect
+        
+        const query = `
+            SELECT 
+                o.id, 
+                o.transaction_code, 
+                o.customer_name, 
+                o.total_price, 
+                o.status, 
+                o.created_at,
+                COALESCE(STRING_AGG(p.name || ' (' || oi.quantity || ')', ', '), 'Menu tidak diketahui') as menu_items
+            FROM orders o
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            LEFT JOIN products p ON oi.product_id = p.id
+            WHERE o.user_id = $1
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+        `;
+        
+        const result = await pool.query(query, [userId]);
+        res.json(result.rows);
+        
+    } catch (err) {
+        console.error("Error Get History:", err);
+        res.status(500).json({ error: 'Gagal mengambil riwayat pesanan' });
+    }
+};
+
+// --- 3. USER: LACAK PESANAN (TANPA LOGIN) ---
 const getOrderStatus = async (req, res) => {
     const { transaction_code } = req.params;
     try {
@@ -58,6 +109,7 @@ const getOrderStatus = async (req, res) => {
         }
         
         const order = orderResult.rows[0];
+        
         const itemsQuery = `
             SELECT p.name, oi.quantity 
             FROM order_items oi
@@ -75,7 +127,7 @@ const getOrderStatus = async (req, res) => {
             items: itemsString,
             timeline: [
                 { status: "Pesanan Dibuat", time: order.created_at, done: true },
-                { status: "Diproses Dapur", time: "-", done: order.status !== 'Menunggu Konfirmasi' && order.status !== 'Menunggu Pembayaran' },
+                { status: "Diproses Dapur", time: "-", done: order.status !== 'Menunggu Konfirmasi' },
                 { status: "Selesai", time: "-", done: order.status === 'Selesai' },
             ]
         });
@@ -84,31 +136,7 @@ const getOrderStatus = async (req, res) => {
     }
 };
 
-// --- 3. USER: RIWAYAT PESANAN (BARU/DITAMBAHKAN KEMBALI) ---
-const getUserOrders = async (req, res) => {
-    try {
-        const userId = req.user.id; 
-        
-        const query = `
-            SELECT 
-                o.id, o.transaction_code, o.customer_name, o.total_price, o.status, o.created_at,
-                COALESCE(STRING_AGG(p.name || ' (' || oi.quantity || ')', ', '), 'Tidak ada item') as menu_items
-            FROM orders o
-            LEFT JOIN order_items oi ON o.id = oi.order_id
-            LEFT JOIN products p ON oi.product_id = p.id
-            WHERE o.user_id = $1
-            GROUP BY o.id
-            ORDER BY o.created_at DESC
-        `;
-        const result = await pool.query(query, [userId]);
-        res.json(result.rows);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Gagal mengambil riwayat pesanan' });
-    }
-};
-
-// --- 4. ADMIN: AMBIL SEMUA PESANAN ---
+// --- 4. ADMIN: SEMUA PESANAN ---
 const getAllOrders = async (req, res) => {
     try {
         const query = `
@@ -128,7 +156,7 @@ const getAllOrders = async (req, res) => {
     }
 };
 
-// --- 5. ADMIN: UPDATE STATUS PESANAN ---
+// --- 5. ADMIN: UPDATE STATUS ---
 const updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body; 
@@ -144,7 +172,7 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-// EXPORT SEMUA FUNGSI [Citations: src/controllers/orderController.js]
+// EXPORT SEMUA
 module.exports = { 
     createOrder, 
     getOrderStatus, 
