@@ -1,7 +1,10 @@
 const pool = require('../config/db').pool;
 
 const createOrder = async (req, res) => {
-    const { user_id, customer_name, customer_whatsapp, customer_address, total_price, cart_items } = req.body;
+    // Ambil ID User langsung dari Token (req.user), jangan percaya req.body
+    const userIdFromToken = req.user.id; 
+    const { customer_name, customer_whatsapp, customer_address, total_price, cart_items } = req.body;
+    
     const client = await pool.connect();
 
     try {
@@ -15,8 +18,9 @@ const createOrder = async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, $6, 'Menunggu Konfirmasi')
             RETURNING id, transaction_code
         `;
+        // Masukkan userIdFromToken ke dalam kolom user_id
         const orderResult = await client.query(orderQuery, [
-            user_id, transaction_code, customer_name, customer_whatsapp, customer_address, total_price
+            userIdFromToken, transaction_code, customer_name, customer_whatsapp, customer_address, total_price
         ]);
         const newOrderId = orderResult.rows[0].id;
         
@@ -36,10 +40,8 @@ const createOrder = async (req, res) => {
     }
 };
 
-// --- FUNGSI BARU: AMBIL RIWAYAT PESANAN USER ---
 const getUserOrders = async (req, res) => {
     try {
-        // Ambil ID User dari Token (req.user diset oleh middleware protect)
         const userId = req.user.id; 
         
         const query = `
@@ -130,5 +132,4 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-// PASTIKAN getUserOrders ADA DI SINI
 module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus, getUserOrders };
