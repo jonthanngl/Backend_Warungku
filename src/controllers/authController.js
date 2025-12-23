@@ -10,9 +10,7 @@ const generateToken = (id) => {
 
 const registerUser = async (req, res) => {
   const { name, email, password, phone_number } = req.body;
-
   try {
-
     const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userExists.rows.length > 0) {
       return res.status(400).json({ message: 'Email sudah terdaftar' });
@@ -27,7 +25,6 @@ const registerUser = async (req, res) => {
     );
 
     const user = newUser.rows[0];
-
     res.status(201).json({
       message: 'Registrasi berhasil',
       token: generateToken(user.id), 
@@ -35,10 +32,10 @@ const registerUser = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone_number, // Mengirim nomor ke frontend
         role: user.role
       }
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -46,21 +43,16 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
-
   try {
-
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    
     if (result.rows.length === 0) {
       return res.status(400).json({ message: 'Email tidak ditemukan' });
     }
 
     const user = result.rows[0];
-
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (isMatch) {
-   
       res.json({
         message: 'Login berhasil',
         token: generateToken(user.id), 
@@ -68,15 +60,16 @@ const loginUser = async (req, res) => {
           id: user.id,
           name: user.name,
           email: user.email,
+          phone: user.phone_number, // Mengirim nomor ke frontend
           role: user.role
         }
       });
     } else {
       res.status(400).json({ message: 'Password salah' });
     }
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 module.exports = { registerUser, loginUser };
