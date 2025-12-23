@@ -1,7 +1,8 @@
 const pool = require('../config/db').pool;
 
+// --- 1. USER: BUAT PESANAN BARU ---
 const createOrder = async (req, res) => {
-    // Ambil ID User langsung dari Token (req.user), jangan percaya req.body
+    // Ambil ID User langsung dari Token (req.user), jangan percaya req.body untuk keamanan
     const userIdFromToken = req.user.id; 
     const { customer_name, customer_whatsapp, customer_address, total_price, cart_items } = req.body;
     
@@ -18,7 +19,8 @@ const createOrder = async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, $6, 'Menunggu Konfirmasi')
             RETURNING id, transaction_code
         `;
-        // Masukkan userIdFromToken ke dalam kolom user_id
+        
+        // Menggunakan userIdFromToken agar pesanan terikat ke akun yang login
         const orderResult = await client.query(orderQuery, [
             userIdFromToken, transaction_code, customer_name, customer_whatsapp, customer_address, total_price
         ]);
@@ -30,7 +32,11 @@ const createOrder = async (req, res) => {
         }
         
         await client.query('COMMIT');
-        res.status(201).json({ message: 'Pesanan berhasil dibuat!', transaction_code: transaction_code, total_price: total_price });
+        res.status(201).json({ 
+            message: 'Pesanan berhasil dibuat!', 
+            transaction_code: transaction_code, 
+            total_price: total_price 
+        });
     } catch (err) {
         await client.query('ROLLBACK');
         console.error(err);
@@ -40,37 +46,17 @@ const createOrder = async (req, res) => {
     }
 };
 
-const getUserOrders = async (req, res) => {
-    try {
-        const userId = req.user.id; 
-        
-        const query = `
-            SELECT 
-                o.id, o.transaction_code, o.customer_name, o.total_price, o.status, o.created_at,
-                STRING_AGG(p.name || ' (' || oi.quantity || ')', ', ') as menu_items
-            FROM orders o
-            JOIN order_items oi ON o.id = oi.order_id
-            JOIN products p ON oi.product_id = p.id
-            WHERE o.user_id = $1
-            GROUP BY o.id
-            ORDER BY o.created_at DESC
-        `;
-        const result = await pool.query(query, [userId]);
-        res.json(result.rows);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Gagal mengambil riwayat pesanan' });
-    }
-};
-
+// --- 2. USER: CEK STATUS (TRACKING) ---
 const getOrderStatus = async (req, res) => {
     const { transaction_code } = req.params;
     try {
         const orderQuery = `SELECT * FROM orders WHERE transaction_code = $1`;
         const orderResult = await pool.query(orderQuery, [transaction_code]);
+        
         if (orderResult.rows.length === 0) {
             return res.status(404).json({ message: 'Kode transaksi tidak ditemukan' });
         }
+        
         const order = orderResult.rows[0];
         const itemsQuery = `
             SELECT p.name, oi.quantity 
@@ -98,6 +84,31 @@ const getOrderStatus = async (req, res) => {
     }
 };
 
+// --- 3. USER: RIWAYAT PESANAN (BARU/DITAMBAHKAN KEMBALI) ---
+const getUserOrders = async (req, res) => {
+    try {
+        const userId = req.user.id; 
+        
+        const query = `
+            SELECT 
+                o.id, o.transaction_code, o.customer_name, o.total_price, o.status, o.created_at,
+                COALESCE(STRING_AGG(p.name || ' (' || oi.quantity || ')', ', '), 'Tidak ada item') as menu_items
+            FROM orders o
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            LEFT JOIN products p ON oi.product_id = p.id
+            WHERE o.user_id = $1
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+        `;
+        const result = await pool.query(query, [userId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Gagal mengambil riwayat pesanan' });
+    }
+};
+
+// --- 4. ADMIN: AMBIL SEMUA PESANAN ---
 const getAllOrders = async (req, res) => {
     try {
         const query = `
@@ -117,6 +128,7 @@ const getAllOrders = async (req, res) => {
     }
 };
 
+// --- 5. ADMIN: UPDATE STATUS PESANAN ---
 const updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body; 
@@ -132,4 +144,11 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus, getUserOrders };
+// EXPORT SEMUA FUNGSI [Citations: src/controllers/orderController.js]
+module.exports = { 
+    createOrder, 
+    getOrderStatus, 
+    getUserOrders, 
+    getAllOrders, 
+    updateOrderStatus 
+};
