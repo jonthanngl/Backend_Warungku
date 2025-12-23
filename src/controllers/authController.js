@@ -32,7 +32,7 @@ const registerUser = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        phone: user.phone_number, // Mengirim nomor ke frontend
+        phone: user.phone_number, // <--- Perubahan: Kirim data phone_number ke frontend
         role: user.role
       }
     });
@@ -60,7 +60,7 @@ const loginUser = async (req, res) => {
           id: user.id,
           name: user.name,
           email: user.email,
-          phone: user.phone_number, // Mengirim nomor ke frontend
+          phone: user.phone_number, // <--- Perubahan: Kirim data phone_number ke frontend
           role: user.role
         }
       });
