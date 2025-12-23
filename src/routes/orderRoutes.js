@@ -1,21 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
-const { protect, adminOnly } = require('../middleware/authMiddleware'); 
+const { protect } = require('../middleware/authMiddleware'); // Pastikan ini diimport
 
-// USER ROUTES
-router.post('/', orderController.createOrder);
+// Route untuk membuat pesanan baru (WAJIB pakai protect)
+router.post('/', protect, orderController.createOrder); // Tambahkan protect di sini
 
-// --- RUTE BARU: RIWAYAT PESANAN (Harus diletakkan DI ATAS route /:transaction_code) ---
-router.get('/history', protect, orderController.getUserOrders);
+// Route untuk mengambil riwayat pesanan user
+router.get('/history', protect, orderController.getUserOrders); // Ini sudah benar
 
-// Route untuk Lacak Pesanan (Saya tambahkan prefix /track/ biar aman & tidak bentrok)
-router.get('/track/:transaction_code', orderController.getOrderStatus);
-// Jaga-jaga kalau frontend masih pakai route lama (tanpa /track/), biarkan yg ini di paling bawah:
-router.get('/:transaction_code', orderController.getOrderStatus);
-
-// ADMIN ROUTES
-router.get('/', protect, adminOnly, orderController.getAllOrders);     
-router.put('/:id', protect, adminOnly, orderController.updateOrderStatus); 
+// Route untuk tracking pesanan berdasarkan kode
+router.get('/track/:code', orderController.trackOrder);
 
 module.exports = router;
