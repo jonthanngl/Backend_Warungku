@@ -10,6 +10,7 @@ const generateToken = (id) => {
 
 const registerUser = async (req, res) => {
   const { name, email, password, phone_number } = req.body;
+
   try {
     const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userExists.rows.length > 0) {
@@ -25,6 +26,7 @@ const registerUser = async (req, res) => {
     );
 
     const user = newUser.rows[0];
+
     res.status(201).json({
       message: 'Registrasi berhasil',
       token: generateToken(user.id), 
@@ -32,10 +34,11 @@ const registerUser = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        phone: user.phone_number, // <--- Perubahan: Kirim data phone_number ke frontend
+        phone: user.phone_number, // Ditambahkan agar frontend bisa menyimpan nomor HP
         role: user.role
       }
     });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -43,8 +46,10 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
+
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    
     if (result.rows.length === 0) {
       return res.status(400).json({ message: 'Email tidak ditemukan' });
     }
@@ -60,13 +65,14 @@ const loginUser = async (req, res) => {
           id: user.id,
           name: user.name,
           email: user.email,
-          phone: user.phone_number, // <--- Perubahan: Kirim data phone_number ke frontend
+          phone: user.phone_number, // Ditambahkan agar frontend bisa menampilkan nomor HP
           role: user.role
         }
       });
     } else {
       res.status(400).json({ message: 'Password salah' });
     }
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
