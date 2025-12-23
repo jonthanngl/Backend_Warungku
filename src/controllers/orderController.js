@@ -5,7 +5,6 @@ const createOrder = async (req, res) => {
     // Ambil ID User dari token (req.user). 
     // Pastikan di routes sudah ada middleware 'protect'
     const userIdFromToken = req.user.id; 
-    
     const { 
         customer_name, 
         customer_whatsapp, 
@@ -180,3 +179,4 @@ module.exports = {
     getAllOrders, 
     updateOrderStatus 
 };
+
