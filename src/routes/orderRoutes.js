@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
-const { protect } = require('../middleware/authMiddleware'); // Pastikan ini diimport
+const { protect } = require('../middleware/authMiddleware');
 
-// Route untuk membuat pesanan baru (WAJIB pakai protect)
-router.post('/', protect, orderController.createOrder); // Tambahkan protect di sini
+// Buat pesanan (Harus Login)
+router.post('/', protect, orderController.createOrder);
 
-// Route untuk mengambil riwayat pesanan user
-router.get('/history', protect, orderController.getUserOrders); // Ini sudah benar
+// Ambil riwayat (Harus Login)
+router.get('/history', protect, orderController.getUserOrders);
 
-// Route untuk tracking pesanan berdasarkan kode
-router.get('/track/:code', orderController.trackOrder);
+// Track pesanan (Bisa tanpa login)
+router.get('/track/:transaction_code', orderController.getOrderStatus);
 
 module.exports = router;
