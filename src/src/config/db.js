@@ -1,25 +1,13 @@
 // src/config/database.js
-// src/config/database.js
 const { Pool } = require('pg');
 
-// Gunakan DATABASE_URL jika tersedia (untuk deployment)
-const connectionConfig = process.env.DATABASE_URL ? {
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false // Wajib untuk SSL/TLS di Neon
-  }
-} : {
-  // Variabel terpisah untuk pengembangan lokal
+const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
-};
-
-const pool = new Pool(connectionConfig);
-
-// ... (sisa kode tetap sama)
+});
 
 // Cek koneksi pas awal jalan
 pool.connect((err, client, release) => {
