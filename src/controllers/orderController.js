@@ -110,6 +110,22 @@ const updateOrderStatus = async (req, res) => {
 const getUserOrders = async (req, res) => {
     try {
         const userId = req.user.id; 
+        // --- CCTV LOG MULAI ---
+        console.log("==========================================");
+        console.log(">>> [DEBUG] SIAPA YANG LOGIN?");
+        console.log(">>> User ID dari Token:", userId);
+        
+        // Cek apakah ada orderan mentah untuk ID ini?
+        const checkRaw = await pool.query('SELECT id, user_id, customer_name FROM orders WHERE user_id = $1', [userId]);
+        console.log(">>> [DEBUG] APAKAH ADA PESANAN DI DB?");
+        console.log(`>>> Ditemukan ${checkRaw.rows.length} pesanan untuk User ID ${userId}`);
+        if (checkRaw.rows.length > 0) {
+            console.log(">>> Contoh Pesanan:", checkRaw.rows[0]);
+        } else {
+            console.log(">>> HASIL: KOSONG (User ID ini tidak punya data di tabel orders)");
+        }
+        console.log("==========================================");
+        // --- CCTV LOG SELESAI ---
         const query = `
             SELECT 
                 o.id, o.transaction_code, o.total_price, o.status, o.created_at,
@@ -130,3 +146,4 @@ const getUserOrders = async (req, res) => {
 };
 
 module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus, getUserOrders };
+
