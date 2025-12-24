@@ -2,15 +2,15 @@ const pool = require('../config/db').pool;
 
 // --- 1. USER: BUAT PESANAN BARU ---
 const createOrder = async (req, res) => {
-    // ... (Fungsi ini tidak berubah, tetap menggunakan user_id)
     const { user_id, customer_name, customer_whatsapp, customer_address, total_price, cart_items } = req.body;
     const client = await pool.connect();
-    // ... (sisa code createOrder)
+    
     try {
         await client.query('BEGIN');
         const timestamp = Date.now().toString().slice(-6);
         const randomNum = Math.floor(Math.random() * 1000);
         const transaction_code = `WRG-${timestamp}-${randomNum}`;
+        
         const orderQuery = `
             INSERT INTO orders (user_id, transaction_code, customer_name, customer_whatsapp, customer_address, total_price, status)
             VALUES ($1, $2, $3, $4, $5, $6, 'Menunggu Konfirmasi')
@@ -20,7 +20,7 @@ const createOrder = async (req, res) => {
             user_id, transaction_code, customer_name, customer_whatsapp, customer_address, total_price
         ]);
         const newOrderId = orderResult.rows[0].id;
-        // ... (sisa item query)
+        
         const itemQuery = `INSERT INTO order_items (order_id, product_id, quantity, price_at_time) VALUES ($1, $2, $3, $4)`;
         for (const item of cart_items) {
             await client.query(itemQuery, [newOrderId, item.id, item.qty, item.price]);
@@ -38,7 +38,6 @@ const createOrder = async (req, res) => {
 
 // --- 2. USER: CEK STATUS (TRACKING) ---
 const getOrderStatus = async (req, res) => {
-    // ... (Fungsi ini tidak berubah)
     const { transaction_code } = req.params;
     try {
         const orderQuery = `SELECT * FROM orders WHERE transaction_code = $1`;
@@ -73,7 +72,6 @@ const getOrderStatus = async (req, res) => {
 
 // --- 3. ADMIN: AMBIL SEMUA PESANAN ---
 const getAllOrders = async (req, res) => {
-    // ... (Fungsi ini tidak berubah)
     try {
         const query = `
             SELECT 
@@ -94,7 +92,6 @@ const getAllOrders = async (req, res) => {
 
 // --- 4. ADMIN: UPDATE STATUS PESANAN ---
 const updateOrderStatus = async (req, res) => {
-    // ... (Fungsi ini tidak berubah)
     const { id } = req.params;
     const { status } = req.body; 
     try {
@@ -109,6 +106,31 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-// --- 5. USER: RIWAYAT PESANAN (getUserOrderHistory telah dihapus) ---
+// --- 5. USER: RIWAYAT PESANAN (YANG SEBELUMNYA HILANG) ---
+const getUserOrders = async (req, res) => {
+    try {
+        // req.user.id didapat dari middleware 'protect'
+        const userId = req.user.id; 
+        
+        const query = `
+            SELECT 
+                o.id, o.transaction_code, o.total_price, o.status, o.created_at,
+                STRING_AGG(p.name || ' (' || oi.quantity || ')', ', ') as menu_items
+            FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            WHERE o.user_id = $1
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+        `;
+        
+        const result = await pool.query(query, [userId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Gagal mengambil riwayat pesanan" });
+    }
+};
 
-module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus }; // <-- EXPORT BARU
+// JANGAN LUPA EXPORT getUserOrders DI SINI
+module.exports = { createOrder, getOrderStatus, getAllOrders, updateOrderStatus, getUserOrders };
