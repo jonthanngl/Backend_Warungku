@@ -52,30 +52,5 @@ PATCH /:id/status: Memperbarui status pesanan (khusus Admin).
 4. Dashboard (/api/dashboard)
 GET /stats: Mendapatkan ringkasan statistik untuk panel Admin.
 
-# ⚙️ Instalasi & Konfigurasi
-
-1. Clone repositori:
-Bash
-git clone https://github.com/jonthanngl/backend_warungku.git
-cd backend_warungku
-
-2. Instal dependensi:
-Bash
-npm install
-
-3. Pengaturan Environment Variables: Buat file .env di direktori utama dan isi dengan konfigurasi berikut
-Cuplikan kode
-PORT=5000
-NEONDB_URI=your_neondb_connection_string
-JWT_SECRET=your_secret_key
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-4. Jalankan Server:
-Bash
-npm start
-
 # 🔐 Keamanan
-Aplikasi ini menggunakan middleware protect untuk memastikan bahwa hanya pengguna dengan token valid yang dapat melakukan pemesanan, dan middleware admin untuk membatasi akses ke fungsi manajemen menu dan statistik dashboard.
 Aplikasi ini menggunakan middleware protect untuk memastikan bahwa hanya pengguna dengan token valid yang dapat melakukan pemesanan, dan middleware admin untuk membatasi akses ke fungsi manajemen menu dan statistik dashboard.
