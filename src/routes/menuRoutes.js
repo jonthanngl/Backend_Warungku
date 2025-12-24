@@ -1,15 +1,20 @@
+// src/routes/menuRoutes.js
 const express = require('express');
 const router = express.Router();
 const menuController = require('../controllers/menuController');
 const { protect, adminOnly } = require('../middleware/authMiddleware'); 
-const upload = require('../middleware/uploadMiddleware'); // <-- IMPORT DARI FILE BARU
+const upload = require('../middleware/uploadMiddleware'); 
 
-// --- DEFINISI ROUTE ---
-router.get('/', menuController.getAllMenu);                 
+// --- PUBLIC ROUTE (Bisa diakses siapa saja) ---
+// INI YANG HILANG SEBELUMNYA 👇
+router.get('/', menuController.getAllMenu); 
 
-// --- PROTEKSI ROUTE ADMIN ---
+
+// --- PROTEKSI ROUTE ADMIN (Hanya Admin yang bisa akses) ---
 router.post('/', protect, adminOnly, upload.single('image'), menuController.addMenu); 
-router.put('/:id', protect, adminOnly, menuController.updateMenu);    
+
+router.put('/:id', protect, adminOnly, upload.single('image'), menuController.updateMenu);    
+
 router.delete('/:id', protect, adminOnly, menuController.deleteMenu); 
 
 module.exports = router;

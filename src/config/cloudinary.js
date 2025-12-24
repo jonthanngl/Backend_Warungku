@@ -1,3 +1,4 @@
+// src/config/cloudinary.js
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
@@ -11,6 +12,7 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'warung-fix-menu',
+    // PASTIKAN 'avif' ADA DI SINI 👇
     allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'avif'], 
   },
 });
