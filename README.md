@@ -1,12 +1,12 @@
 # WarungKu Backend API
-Repositori ini berisi kode sumber untuk server API WarungKu, sebuah platform pemesanan makanan. Backend ini dibangun menggunakan Node.js dan Express, serta menggunakan MongoDB sebagai basis data untuk mengelola pengguna, menu, dan transaksi pesanan.
+Repositori ini berisi kode sumber untuk server API WarungKu, sebuah platform pemesanan makanan. Backend ini dibangun menggunakan Node.js dan Express, serta menggunakan Neon (Serverless PostgreSQL) sebagai basis data untuk mengelola pengguna, menu, dan transaksi pesanan.
 
 # 🛠️ Arsitektur & Teknologi
 Runtime: Node.js.
 
 Framework: Express.js.
 
-Database: MongoDB melalui Mongoose.
+Database: PostgreSQL (Hosted on Neon.tech).
 
 Autentikasi: JSON Web Token (JWT) untuk pengamanan endpoint.
 
@@ -15,7 +15,7 @@ Penyimpanan Gambar: Cloudinary API untuk mengunggah dan menyimpan foto menu.
 Middleware: cors untuk akses lintas domain, multer untuk penanganan file, dan custom middleware untuk proteksi rute.
 
 # 📁 Struktur Proyek
-src/config/: Konfigurasi basis data (MongoDB) dan layanan pihak ketiga (Cloudinary).
+src/config/: Konfigurasi koneksi database Neon dan layanan pihak ketiga seperti Cloudinary.
 
 src/controllers/: Logika bisnis utama untuk autentikasi, manajemen menu, pesanan, dan dashboard.
 
@@ -53,4 +53,4 @@ PATCH /:id/status: Memperbarui status pesanan (khusus Admin).
 GET /stats: Mendapatkan ringkasan statistik untuk panel Admin.
 
 # 🔐 Keamanan
-Aplikasi ini menggunakan middleware protect untuk memastikan bahwa hanya pengguna dengan token valid yang dapat melakukan pemesanan, dan middleware admin untuk membatasi akses ke fungsi manajemen menu dan statistik dashboard.
+Aplikasi ini menggunakan middleware protect untuk memastikan bahwa hanya pengguna dengan token JWT valid yang dapat melakukan transaksi. Peran (role) diperiksa melalui database PostgreSQL untuk membatasi akses fitur Admin.
